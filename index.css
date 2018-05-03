@@ -12,6 +12,10 @@
     --rotation-origin: calc(var(--domino-height) / 2);
 }
 
+*:focus {
+    outline: none;
+}
+
 body {
     font-family: sans-serif;
     color: white;
@@ -23,8 +27,34 @@ div {
 }
 
 p {
-    max-width: 600px;
+    max-width: 560px;
     text-align: justify;
+}
+
+button {
+    border-radius: 4px;
+    height: 32px;
+    width: 100%;
+    background-color: #2f0b75;
+    border: 1px solid #003179;
+    border-bottom-width: 2px;
+    border-right-width: 2px;
+    color: #dfdeff;
+    margin-bottom: 10px;
+}
+
+button:hover {
+    border: 1px solid #0066ff;
+}
+
+button:active {
+    position: relative;
+    left: 1px;
+    top: 1px;
+    border-bottom-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 2px;
+    border-left-width: 2px;
 }
 
 .hidden {
@@ -71,4 +101,14 @@ p {
 #board-background {
     width: calc(var(--tile-size) * var(--board-width));
     height: calc(var(--tile-size) * var(--board-height));
+}
+
+#container {
+    display: flex;
+    flex-direction: row;
+}
+
+#controls {
+    margin-left: 10px;
+    width: 150px;
 }

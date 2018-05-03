@@ -166,6 +166,9 @@ class Dominoes {
         this.runRandomPlacement();
 
         document.addEventListener("keypress", e => e.key === "r" && this.runRandomPlacement());
+        document.addEventListener("keypress", e => e.key === "c" && this.reset());
+        document.getElementById("reset").addEventListener("click", () => this.runRandomPlacement());
+        document.getElementById("clear").addEventListener("click", () => this.reset());
     }
 
     reset() {

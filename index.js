@@ -40,6 +40,109 @@ class Domino {
 
         app.container.appendChild(this.element);
     }
+
+    remove() {
+        this.element.remove();
+    }
+}
+
+class RandomPlacement {
+
+    constructor () {
+        this.NEIGHBOR_EAST = { dx: 1, dy: 0 };
+        this.NEIGHBOR_SOUTH = { dx: 0, dy: 1 };
+        this.NEIGHBOR_WEST = { dx: -1, dy: 0 };
+        this.NEIGHBOR_NORTH = { dx: 0, dy: -1 };
+
+        /** @type {Boolean[][]} */
+        this.board = [];
+        this.boardWidth = 0;
+        this.boardHeight = 0;
+        this.boardPositions = [];
+    }
+
+    resetBoard(width, height) {
+        if (this.boardWidth !== width || this.boardHeight !== height) {
+            this.boardWidth = width;
+            this.boardHeight = height;
+            this.board = Array.from(Array(this.boardWidth), () => Array(this.boardHeight));
+
+            // generate all pairs corresponding to board positions in the form [x, y]
+            const totalTiles = width * height;
+            this.boardPositions = Array.from(Array(totalTiles), (e, i) => {
+                const y = Math.trunc(i / width);
+                const x = i % height;
+                return [x, y];
+            });
+        }
+
+        for (const y of range(0, height)) {
+            for (const x of range(0, width)) {
+                this.board[x][y] = false;
+            }
+        }
+    }
+
+    /**
+     * Runs a single placement.
+     *
+     * @param {Number} width
+     * @param {Number} height
+     * @returns {[Number, Number][]} sequence of pairs of coordinates where each domino is
+     */
+    run(width, height) {
+        this.resetBoard(width, height);
+
+        /** @type {[Number, Number][]} */
+        let result = [];
+
+        // cannot just start from position [0,0], otherwise we'll bias the result ([0,0] would always contain a domino)
+        shuffle(this.boardPositions);
+
+        for (const [x, y] of this.boardPositions) {
+            if (this.board[x][y]) {
+                continue;  // there's a domino there already
+            }
+
+            /** @type {{dx: Number, dy: Number}[]} */
+            let availableNeighborTiles = [];
+            // check all possible placements starting from where we are
+            if ((x + 1) < width && !this.board[x + 1][y]) {
+                availableNeighborTiles.push(this.NEIGHBOR_EAST);
+            }
+            if ((y + 1) < height && !this.board[x][y + 1]) {
+                availableNeighborTiles.push(this.NEIGHBOR_SOUTH);
+            }
+            if (x > 0 && !this.board[x - 1][y]) {
+                availableNeighborTiles.push(this.NEIGHBOR_WEST);
+            }
+            if (y > 0 && !this.board[x][y - 1]) {
+                availableNeighborTiles.push(this.NEIGHBOR_NORTH);
+            }
+
+            if (availableNeighborTiles.length === 0) {
+                continue;  // no placements available
+            }
+
+            const randomNeighborIndex = Math.trunc(Math.random() * availableNeighborTiles.length);
+            const chosenNeighborTile = availableNeighborTiles[randomNeighborIndex];
+
+            // occupy board positions
+            this.board[x][y] = true;
+            this.board[x + chosenNeighborTile.dx][y + chosenNeighborTile.dy] = true;
+
+            // smaller position goes first so that dominoes are always west->east or north->south
+            if (chosenNeighborTile.dx < 0 || chosenNeighborTile.dy < 0) {
+                result.push([x + chosenNeighborTile.dx, y + chosenNeighborTile.dy]);
+                result.push([x, y]);
+            } else {
+                result.push([x, y]);
+                result.push([x + chosenNeighborTile.dx, y + chosenNeighborTile.dy]);
+            }
+        }
+
+        return result;
+    }
 }
 
 class Dominoes {
@@ -56,48 +159,50 @@ class Dominoes {
         this.boardWidth = getCssVariableAsNumber("--board-width");
         this.boardHeight = getCssVariableAsNumber("--board-height");
 
-        const shuffledPositions = Array.from(Array(this.boardWidth * this.boardHeight), (e, i) => {
-            const y = Math.trunc(i / this.boardWidth);
-            const x = i % this.boardWidth;
-            return [x, y];
-        });
-        shuffle(shuffledPositions);
+        this.drawGrid();
 
-        this.board = Array.from(Array(this.boardWidth), () => Array(this.boardHeight));
-        for (const [x, y] of shuffledPositions) {
-            if (this.board[x][y]) {
-                continue;  // there's a domino there
-            }
+        this.randomPlacement = new RandomPlacement();
 
-            let availableNeighborTiles = [];
-            if ((x + 1) < this.boardWidth && !this.board[x + 1][y]) {
-                availableNeighborTiles.push([1, 0, "east"]);
-            }
-            if ((y + 1) < this.boardHeight && !this.board[x][y + 1]) {
-                availableNeighborTiles.push([0, 1, "south"]);
-            }
-            if (x > 0 && !this.board[x - 1][y]) {
-                availableNeighborTiles.push([-1, 0, "west"]);
-            }
-            if (y > 0 && !this.board[x][y - 1]) {
-                availableNeighborTiles.push([0, -1, "north"]);
-            }
+        this.runRandomPlacement();
 
-            if (availableNeighborTiles.length === 0) {
-                continue;
-            }
+        document.addEventListener("keypress", e => e.key === "r" && this.placeRandomly());
+    }
 
-            const index = Math.trunc(Math.random() * availableNeighborTiles.length);
-            const otherTile = availableNeighborTiles[index];
-            const dx = otherTile[0];
-            const dy = otherTile[1];
-            const rotationClass = otherTile[2];
-            const domino = new Domino(this, x, y, rotationClass);
-            this.board[x][y] = domino;
-            this.board[x + dx][y + dy] = domino;
+    reset() {
+        if (this.dominoes) {
+            for (const domino of this.dominoes) {
+                domino.remove();
+            }
         }
 
-        this.drawGrid();
+        /** @type {Domino[]} */
+        this.dominoes = [];
+        /** @type {Domino[][]} */
+        this.board = Array.from(Array(this.boardWidth), () => Array(this.boardHeight));
+    }
+
+    runRandomPlacement() {
+        this.reset();
+
+        const totalTiles = this.boardWidth * this.boardHeight;
+        let placements;
+        let maxAttempts = 10000;
+        do {
+            placements = this.randomPlacement.run(this.boardWidth, this.boardHeight);
+        } while (placements.length !== totalTiles && --maxAttempts > 0);
+        if (maxAttempts === 0) {
+            console.info("Did not find it :-(");
+        } else {
+            console.info("Found it!");
+        }
+
+        for (let i = 0; i < placements.length; i += 2) {
+            const [x1, y1] = placements[i];
+            const [x2, y2] = placements[i+1];
+            const domino = new Domino(this, x1, y1, x1 < x2 ? "east" : "south");
+            this.board[x1][y1] = domino;
+            this.board[x2][y2] = domino;
+        }
     }
 
     drawGrid() {

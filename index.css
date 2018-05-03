@@ -12,6 +12,12 @@
     --rotation-origin: calc(var(--domino-height) / 2);
 }
 
+body {
+    font-family: sans-serif;
+    color: white;
+    background-color: #101010;
+}
+
 div {
     box-sizing: border-box;
 }
@@ -28,6 +34,10 @@ div {
     border-radius: 4px;
     position: absolute;
     transform-origin: var(--rotation-origin) var(--rotation-origin);
+}
+
+.domino:hover {
+    border: 2px solid white;
 }
 
 .east {

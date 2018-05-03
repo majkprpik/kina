@@ -31,28 +31,67 @@ class Domino {
      * @param {Number} y1
      * @param {Number} x2
      * @param {Number} y2
+     * @param {Boolean} isGhost
      */
-    constructor (index, app, x1, y1, x2, y2) {
+    constructor (index, app, x1, y1, x2, y2, isGhost = false) {
         this.index = index;
         this.app = app;
+        this.isGhost = isGhost;
+        this.element = document.createElement("div");
+        this.setPosition(x1, y1, x2, y2);
+
+        const rotationClass = this.isHorizontal ? "east" : "south";
+        this.element.classList.add("domino", rotationClass);
+        if (this.isGhost) {
+            this.element.classList.add("ghost", rotationClass);
+        }
+
+        if (!this.isGhost) {
+            this.app.container.appendChild(this.element);
+
+            this.element.addEventListener("click", () => {
+                this.app.removeDomino(this.index);
+                this.remove();
+            });
+        }
+    }
+
+    /**
+     * @param {Number} x1
+     * @param {Number} y1
+     * @param {Number} [x2] - optional; if not provided, isHorizontal will be used to infer it
+     * @param {Number} [y2] - optional; if not provided, isHorizontal will be used to infer it
+     */
+    setPosition(x1, y1, x2, y2) {
         this.x1 = x1;
         this.y1 = y1;
-        this.x2 = x2;
-        this.y2 = y2;
-        this.element = document.createElement("div");
-        const rotationClass = x1 < x2 ? "east" : "south";
-        this.element.classList.add("domino", rotationClass);
-        const canvasX = x1 * app.tileSize + app.tilePadding;
-        const canvasY = y1 * app.tileSize + app.tilePadding;
+        this.x2 = x2 !== undefined ? x2 : (this.isHorizontal ? x1 + 1 : x1);
+        this.y2 = y2 !== undefined ? y2 : (this.isHorizontal ? y1 : y1 + 1);
+        if (x2 !== undefined) {
+            this.isHorizontal = x1 < x2;
+            this.updateOrientation();
+        }
+
+        const canvasX = this.x1 * this.app.tileSize + this.app.tilePadding;
+        const canvasY = this.y1 * this.app.tileSize + this.app.tilePadding;
         this.element.style.top = `${canvasY}px`;
         this.element.style.left = `${canvasX}px`;
+    }
 
-        this.app.container.appendChild(this.element);
+    flip() {
+        this.isHorizontal = !this.isHorizontal;
+        this.updateOrientation();
+    }
 
-        this.element.addEventListener("click", () => {
-            this.app.removeDomino(this.index);
-            this.remove();
-        });
+    updateOrientation() {
+        if (this.isHorizontal) {
+            this.element.classList.add("east");
+            this.element.classList.remove("south");
+        } else {
+            this.element.classList.remove("east");
+            this.element.classList.add("south");
+        }
+        this.setPosition(this.x1, this.y1);  // force [x2,y2] update
     }
 
     remove() {
@@ -175,6 +214,7 @@ class Dominoes {
 
         this.drawGrid();
 
+        this.nextDominoIndex = 1;
         this.randomPlacement = new RandomPlacement();
 
         this.runRandomPlacement();
@@ -184,15 +224,14 @@ class Dominoes {
         document.getElementById("reset").addEventListener("click", () => this.runRandomPlacement());
         document.getElementById("clear").addEventListener("click", () => this.reset());
 
-        this.dominoGhost = document.createElement("div");
-        this.dominoGhost.classList.add("domino", "ghost");
-        this.dominoGhostIsHorizontal = true;
+        this.ghostDomino = new Domino(-1, this, 0, 0, 1, 0, true);
         // intercept mouse moves over ghost as movements over the canvas itself
-        this.dominoGhost.addEventListener("mousemove", this.onMouseMoveCanvas.bind(this));
+        this.ghostDomino.element.addEventListener("mousemove", this.onMouseMoveCanvas.bind(this));
         this.canvas.addEventListener("mousemove", this.onMouseMoveCanvas.bind(this));
         this.canvas.addEventListener("mouseover", this.onMouseOverCanvas.bind(this));
         this.canvas.addEventListener("mouseout", this.onMouseOutCanvas.bind(this));
-        document.body.addEventListener("wheel", this.onMouseWheel.bind(this));
+        this.container.addEventListener("wheel", this.onMouseWheel.bind(this));
+        this.ghostDomino.element.addEventListener("click", this.spawnFromGhost.bind(this));
         this.wheelDebounceNextTime = Date.now() + 300;
     }
 
@@ -202,26 +241,20 @@ class Dominoes {
             return;
         }
         this.wheelDebounceNextTime = now + 300;
-        this.dominoGhostIsHorizontal = !this.dominoGhostIsHorizontal;
-        if (this.dominoGhostIsHorizontal) {
-            this.dominoGhost.classList.add("east");
-            this.dominoGhost.classList.remove("south");
-        } else {
-            this.dominoGhost.classList.remove("east");
-            this.dominoGhost.classList.add("south");
-        }
+        this.ghostDomino.flip();
+
         this.onMouseMoveCanvas(event);
     }
 
     onMouseOverCanvas() {
-        if (!this.dominoGhost.parentElement) {
-            this.container.appendChild(this.dominoGhost);
+        if (!this.ghostDomino.element.parentElement) {
+            this.container.appendChild(this.ghostDomino.element);
         }
     }
 
     onMouseOutCanvas(event) {
-        if (event.relatedTarget !== this.dominoGhost) {
-            this.dominoGhost.remove();
+        if (event.relatedTarget !== this.ghostDomino.element) {
+            this.ghostDomino.remove();
         }
     }
 
@@ -230,14 +263,14 @@ class Dominoes {
         let offsetFromCanvasY = event.offsetY;
         // in case it was the ghost itself who intercepted the mouse move, calculate coordinates relative to parent
         // (I really wanted not to have the ghost intercepting mouse moves, but I guess there's no way to avoid it)
-        if (event.target === this.dominoGhost) {
+        if (event.target === this.ghostDomino.element) {
             const rect = this.container.getBoundingClientRect();
             offsetFromCanvasX = event.clientX - rect.left;
             offsetFromCanvasY = event.clientY - rect.top;
 
             // do not try to render the ghost outside the container area
             if (offsetFromCanvasX >= rect.width || offsetFromCanvasY >= rect.height) {
-                this.dominoGhost.remove();
+                this.ghostDomino.remove();
             }
         }
 
@@ -245,16 +278,61 @@ class Dominoes {
         let y = Math.trunc((offsetFromCanvasY - this.tilePadding) / this.tileSize);
 
         // do not let it span further than board's limits
-        if (x === this.boardWidth - 1 && this.dominoGhostIsHorizontal) {
-            x--;
-        } else if (y === this.boardHeight - 1 && !this.dominoGhostIsHorizontal) {
-            y--;
+        if (this.ghostDomino.isHorizontal && x === this.boardWidth - 1) {
+            x--;  // shift left if over bounds
+        } else if (!this.ghostDomino.isHorizontal && y === this.boardHeight - 1) {
+            y--;  // shift up if over bounds
         }
 
-        const canvasX = x * this.tileSize + this.tilePadding;
-        const canvasY = y * this.tileSize + this.tilePadding;
-        this.dominoGhost.style.top = `${canvasY}px`;
-        this.dominoGhost.style.left = `${canvasX}px`;
+        if (this.board[x][y] instanceof Domino) {
+            this.ghostDomino.remove();
+            return;
+        } else if (this.ghostDomino.isHorizontal && this.board[x+1][y] instanceof Domino) {
+            // horizontal but won't fit
+
+            // try shifting it one left and see if it fits
+            if (x > 0 && !(this.board[x-1][y] instanceof Domino)) {
+                x--;
+            }
+            // try vertical pointing down
+            else if (!(this.board[x][y+1] instanceof Domino)) {
+                this.ghostDomino.setPosition(x, y, x, y + 1);  // switch it to vertical
+            }
+            // try vertical shifting one up
+            else if (y > 0 && !(this.board[x][y-1] instanceof Domino)) {
+                y--;
+                this.ghostDomino.setPosition(x, y, x, y + 1);  // switch it to vertical
+            } else {
+                this.ghostDomino.remove();
+                return;
+            }
+        } else if (!this.ghostDomino.isHorizontal && this.board[x][y+1] instanceof Domino) {
+            // vertical but won't fit
+
+            // try shifting it one up
+            if (y > 0 && !(this.board[x][y-1] instanceof Domino)) {
+                y--;
+            }
+            // try horizontal pointing right
+            else if (!(this.board[x+1][y] instanceof Domino)) {
+                this.ghostDomino.setPosition(x, y, x + 1, y);  // switch it to horizontal
+            }
+            // try horizontal shifting one left
+            else if (x > 0 && !(this.board[x-1][y] instanceof Domino)) {
+                x--;
+                this.ghostDomino.setPosition(x, y, x + 1, y);  // switch it to vertical
+            } else {
+                this.ghostDomino.remove();
+                return;
+            }
+        }
+
+        // show ghost if it was hidden
+        if (!this.ghostDomino.element.parentElement) {
+            this.container.appendChild(this.ghostDomino.element);
+        }
+
+        this.ghostDomino.setPosition(x, y);
     }
 
     reset() {
@@ -277,7 +355,7 @@ class Dominoes {
 
         const totalTiles = this.boardWidth * this.boardHeight;
         let bestPlacement = [];
-        for (let i = 0; i < 10000; i++) {
+        for (let i = 0; i < 100; i++) {
             const placement = this.randomPlacement.run(this.boardWidth, this.boardHeight);
             if (placement.length > bestPlacement.length) {
                 bestPlacement = placement;
@@ -287,19 +365,26 @@ class Dominoes {
             }
         }
 
-        let nextDominoIndex = 1;
         for (let i = 0; i < bestPlacement.length; i += 2) {
             const [x1, y1] = bestPlacement[i];
             const [x2, y2] = bestPlacement[i+1];
-            this.addDomino(nextDominoIndex++, x1, y1, x2, y2);
+            this.addDomino(x1, y1, x2, y2);
         }
     }
 
-    addDomino(index, x1, y1, x2, y2) {
-        const domino = new Domino(index, this, x1, y1, x2, y2);
+    addDomino(x1, y1, x2, y2) {
+        const domino = new Domino(this.nextDominoIndex, this, x1, y1, x2, y2);
         this.board[x1][y1] = domino;
         this.board[x2][y2] = domino;
-        this.dominoesById.set(index, domino);
+        this.dominoesById.set(domino.index, domino);
+        this.nextDominoIndex++;
+    }
+
+    spawnFromGhost() {
+        if (!this.ghostDomino.element.parentElement) {
+            return;
+        }
+        this.addDomino(this.ghostDomino.x1, this.ghostDomino.y1, this.ghostDomino.x2, this.ghostDomino.y2);
     }
 
     removeDomino(index) {

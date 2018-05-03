@@ -124,7 +124,7 @@ class RandomPlacement {
             const totalTiles = width * height;
             this.boardPositions = Array.from(Array(totalTiles), (e, i) => {
                 const y = Math.trunc(i / width);
-                const x = i % height;
+                const x = i % width;
                 return [x, y];
             });
         }

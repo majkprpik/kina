@@ -1,9 +1,8 @@
 
 :root {
     --tile-size: 40px;
-    /*--tile-margin: 1px;*/
-    --board-width: 10;
-    --board-height: 10;
+    --board-width: 32;
+    --board-height: 16;
     --some-calculation: calc(var(--board-width) * 800px);
     --tile-padding: 5px;
 

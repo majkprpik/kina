@@ -228,7 +228,7 @@ class Dominoes {
         // intercept mouse moves over ghost as movements over the canvas itself
         this.ghostDomino.element.addEventListener("mousemove", this.onMouseMoveCanvas.bind(this));
         this.canvas.addEventListener("mousemove", this.onMouseMoveCanvas.bind(this));
-        this.canvas.addEventListener("mouseover", this.onMouseOverCanvas.bind(this));
+        this.canvas.addEventListener("mouseover", this.onMouseMoveCanvas.bind(this));
         this.canvas.addEventListener("mouseout", this.onMouseOutCanvas.bind(this));
         this.container.addEventListener("wheel", this.onMouseWheel.bind(this));
         this.ghostDomino.element.addEventListener("click", this.spawnFromGhost.bind(this));
@@ -244,12 +244,6 @@ class Dominoes {
         this.ghostDomino.flip();
 
         this.onMouseMoveCanvas(event);
-    }
-
-    onMouseOverCanvas() {
-        if (!this.ghostDomino.element.parentElement) {
-            this.container.appendChild(this.ghostDomino.element);
-        }
     }
 
     onMouseOutCanvas(event) {
@@ -277,20 +271,25 @@ class Dominoes {
         let x = Math.trunc((offsetFromCanvasX - this.tilePadding) / this.tileSize);
         let y = Math.trunc((offsetFromCanvasY - this.tilePadding) / this.tileSize);
 
+        let didPlace;
         if (this.ghostDomino.isHorizontal) {
-            [
+            didPlace = [
                 () => this.tryGhostPosition(x, y, x + 1, y),
                 () => this.tryGhostPosition(x - 1, y, x, y),
                 () => this.tryGhostPosition(x, y, x, y + 1),
                 () => this.tryGhostPosition(x, y - 1, x, y),
             ].some(fn => fn());
         } else {
-            [
+            didPlace = [
                 () => this.tryGhostPosition(x, y, x, y + 1),
                 () => this.tryGhostPosition(x, y - 1, x, y),
                 () => this.tryGhostPosition(x, y, x + 1, y),
                 () => this.tryGhostPosition(x - 1, y, x, y),
             ].some(fn => fn());
+        }
+
+        if (!didPlace) {
+            this.ghostDomino.remove();  // no suitable placement found; hide it
         }
     }
 

@@ -277,62 +277,46 @@ class Dominoes {
         let x = Math.trunc((offsetFromCanvasX - this.tilePadding) / this.tileSize);
         let y = Math.trunc((offsetFromCanvasY - this.tilePadding) / this.tileSize);
 
-        // do not let it span further than board's limits
-        if (this.ghostDomino.isHorizontal && x === this.boardWidth - 1) {
-            x--;  // shift left if over bounds
-        } else if (!this.ghostDomino.isHorizontal && y === this.boardHeight - 1) {
-            y--;  // shift up if over bounds
+        if (this.ghostDomino.isHorizontal) {
+            [
+                () => this.tryGhostPosition(x, y, x + 1, y),
+                () => this.tryGhostPosition(x - 1, y, x, y),
+                () => this.tryGhostPosition(x, y, x, y + 1),
+                () => this.tryGhostPosition(x, y - 1, x, y),
+            ].some(fn => fn());
+        } else {
+            [
+                () => this.tryGhostPosition(x, y, x, y + 1),
+                () => this.tryGhostPosition(x, y - 1, x, y),
+                () => this.tryGhostPosition(x, y, x + 1, y),
+                () => this.tryGhostPosition(x - 1, y, x, y),
+            ].some(fn => fn());
         }
+    }
 
-        if (this.board[x][y] instanceof Domino) {
-            this.ghostDomino.remove();
-            return;
-        } else if (this.ghostDomino.isHorizontal && this.board[x+1][y] instanceof Domino) {
-            // horizontal but won't fit
+    /**
+     * @param {Number} x1
+     * @param {Number} y1
+     * @param {Number} x2
+     * @param {Number} y2
+     * @returns {Boolean} true if position is a go
+     */
+    tryGhostPosition(x1, y1, x2, y2) {
+        const withinBounds = x1 >= 0 && x2 < this.boardWidth && y1 >= 0 && y2 < this.boardHeight;
+        if (withinBounds) {
+            const tilesFree = !(this.board[x1][y1] instanceof Domino || this.board[x2][y2] instanceof Domino);
+            if (tilesFree) {
+                // show ghost if it was hidden
+                if (!this.ghostDomino.element.parentElement) {
+                    this.container.appendChild(this.ghostDomino.element);
+                }
 
-            // try shifting it one left and see if it fits
-            if (x > 0 && !(this.board[x-1][y] instanceof Domino)) {
-                x--;
-            }
-            // try vertical pointing down
-            else if (!(this.board[x][y+1] instanceof Domino)) {
-                this.ghostDomino.setPosition(x, y, x, y + 1);  // switch it to vertical
-            }
-            // try vertical shifting one up
-            else if (y > 0 && !(this.board[x][y-1] instanceof Domino)) {
-                y--;
-                this.ghostDomino.setPosition(x, y, x, y + 1);  // switch it to vertical
-            } else {
-                this.ghostDomino.remove();
-                return;
-            }
-        } else if (!this.ghostDomino.isHorizontal && this.board[x][y+1] instanceof Domino) {
-            // vertical but won't fit
+                this.ghostDomino.setPosition(x1, y1, x2, y2);
 
-            // try shifting it one up
-            if (y > 0 && !(this.board[x][y-1] instanceof Domino)) {
-                y--;
-            }
-            // try horizontal pointing right
-            else if (!(this.board[x+1][y] instanceof Domino)) {
-                this.ghostDomino.setPosition(x, y, x + 1, y);  // switch it to horizontal
-            }
-            // try horizontal shifting one left
-            else if (x > 0 && !(this.board[x-1][y] instanceof Domino)) {
-                x--;
-                this.ghostDomino.setPosition(x, y, x + 1, y);  // switch it to vertical
-            } else {
-                this.ghostDomino.remove();
-                return;
+                return true;
             }
         }
-
-        // show ghost if it was hidden
-        if (!this.ghostDomino.element.parentElement) {
-            this.container.appendChild(this.ghostDomino.element);
-        }
-
-        this.ghostDomino.setPosition(x, y);
+        return false;
     }
 
     reset() {

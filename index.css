@@ -31,6 +31,10 @@ p {
     text-align: justify;
 }
 
+p.important {
+    color: #d0d020;
+}
+
 button {
     border-radius: 4px;
     height: 32px;

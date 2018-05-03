@@ -75,6 +75,15 @@ button:active {
     border: 2px solid white;
 }
 
+.ghost {
+    position: absolute;
+    opacity: 0.4;
+}
+
+.ghost:hover {
+    border: 2px solid #ff4b5c;
+}
+
 .east {
     transform: rotate(0deg);
 }

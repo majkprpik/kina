@@ -183,6 +183,78 @@ class Dominoes {
         document.addEventListener("keypress", e => e.key === "c" && this.reset());
         document.getElementById("reset").addEventListener("click", () => this.runRandomPlacement());
         document.getElementById("clear").addEventListener("click", () => this.reset());
+
+        this.dominoGhost = document.createElement("div");
+        this.dominoGhost.classList.add("domino", "ghost");
+        this.dominoGhostIsHorizontal = true;
+        // intercept mouse moves over ghost as movements over the canvas itself
+        this.dominoGhost.addEventListener("mousemove", this.onMouseMoveCanvas.bind(this));
+        this.canvas.addEventListener("mousemove", this.onMouseMoveCanvas.bind(this));
+        this.canvas.addEventListener("mouseover", this.onMouseOverCanvas.bind(this));
+        this.canvas.addEventListener("mouseout", this.onMouseOutCanvas.bind(this));
+        document.body.addEventListener("wheel", this.onMouseWheel.bind(this));
+        this.wheelDebounceNextTime = Date.now() + 300;
+    }
+
+    onMouseWheel(event) {
+        const now = Date.now();
+        if (now < this.wheelDebounceNextTime) {
+            return;
+        }
+        this.wheelDebounceNextTime = now + 300;
+        this.dominoGhostIsHorizontal = !this.dominoGhostIsHorizontal;
+        if (this.dominoGhostIsHorizontal) {
+            this.dominoGhost.classList.add("east");
+            this.dominoGhost.classList.remove("south");
+        } else {
+            this.dominoGhost.classList.remove("east");
+            this.dominoGhost.classList.add("south");
+        }
+        this.onMouseMoveCanvas(event);
+    }
+
+    onMouseOverCanvas() {
+        if (!this.dominoGhost.parentElement) {
+            this.container.appendChild(this.dominoGhost);
+        }
+    }
+
+    onMouseOutCanvas(event) {
+        if (event.relatedTarget !== this.dominoGhost) {
+            this.dominoGhost.remove();
+        }
+    }
+
+    onMouseMoveCanvas(event) {
+        let offsetFromCanvasX = event.offsetX;
+        let offsetFromCanvasY = event.offsetY;
+        // in case it was the ghost itself who intercepted the mouse move, calculate coordinates relative to parent
+        // (I really wanted not to have the ghost intercepting mouse moves, but I guess there's no way to avoid it)
+        if (event.target === this.dominoGhost) {
+            const rect = this.container.getBoundingClientRect();
+            offsetFromCanvasX = event.clientX - rect.left;
+            offsetFromCanvasY = event.clientY - rect.top;
+
+            // do not try to render the ghost outside the container area
+            if (offsetFromCanvasX >= rect.width || offsetFromCanvasY >= rect.height) {
+                this.dominoGhost.remove();
+            }
+        }
+
+        let x = Math.trunc((offsetFromCanvasX - this.tilePadding) / this.tileSize);
+        let y = Math.trunc((offsetFromCanvasY - this.tilePadding) / this.tileSize);
+
+        // do not let it span further than board's limits
+        if (x === this.boardWidth - 1 && this.dominoGhostIsHorizontal) {
+            x--;
+        } else if (y === this.boardHeight - 1 && !this.dominoGhostIsHorizontal) {
+            y--;
+        }
+
+        const canvasX = x * this.tileSize + this.tilePadding;
+        const canvasY = y * this.tileSize + this.tilePadding;
+        this.dominoGhost.style.top = `${canvasY}px`;
+        this.dominoGhost.style.left = `${canvasX}px`;
     }
 
     reset() {

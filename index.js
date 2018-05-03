@@ -355,7 +355,7 @@ class Dominoes {
 
         const totalTiles = this.boardWidth * this.boardHeight;
         let bestPlacement = [];
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 10000; i++) {
             const placement = this.randomPlacement.run(this.boardWidth, this.boardHeight);
             if (placement.length > bestPlacement.length) {
                 bestPlacement = placement;

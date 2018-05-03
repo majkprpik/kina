@@ -10,6 +10,11 @@
 
 <h1>Domino Tiling</h1>
 
+<p>Brute-force randomized algorithm to place dominoes and try to cover as much tiles as possible. It does not try
+    obvious placements. Instead, it places dominoes randomly, hoping that in the end all tiles will be covered (a
+    perfect match). In case of an imperfect match, it keeps trying for up to 10k attempts, when it gives up and shows
+    the best it could do.</p>
+
 <div id="board">
     <canvas id="board-background"></canvas>
 </div>

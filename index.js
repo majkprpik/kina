@@ -185,20 +185,21 @@ class Dominoes {
         this.reset();
 
         const totalTiles = this.boardWidth * this.boardHeight;
-        let placements;
-        let maxAttempts = 10000;
-        do {
-            placements = this.randomPlacement.run(this.boardWidth, this.boardHeight);
-        } while (placements.length !== totalTiles && --maxAttempts > 0);
-        if (maxAttempts === 0) {
-            console.info("Did not find it :-(");
-        } else {
-            console.info("Found it!");
+        let bestPlacement = [];
+        for (let i = 0; i < 10000; i++) {
+            const placement = this.randomPlacement.run(this.boardWidth, this.boardHeight);
+            if (placement.length > bestPlacement.length) {
+                bestPlacement = placement;
+            }
+            if (placement.length === totalTiles) {
+                console.info("Found it!");
+                break;
+            }
         }
 
-        for (let i = 0; i < placements.length; i += 2) {
-            const [x1, y1] = placements[i];
-            const [x2, y2] = placements[i+1];
+        for (let i = 0; i < bestPlacement.length; i += 2) {
+            const [x1, y1] = bestPlacement[i];
+            const [x2, y2] = bestPlacement[i+1];
             const domino = new Domino(this, x1, y1, x1 < x2 ? "east" : "south");
             this.board[x1][y1] = domino;
             this.board[x2][y2] = domino;

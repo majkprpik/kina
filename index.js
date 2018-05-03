@@ -25,20 +25,34 @@ function shuffle(array) {
 class Domino {
 
     /**
+     * @param {Number} index
      * @param {Dominoes} app
-     * @param {Number} x
-     * @param {Number} y
-     * @param {String} rotationClass
+     * @param {Number} x1
+     * @param {Number} y1
+     * @param {Number} x2
+     * @param {Number} y2
      */
-    constructor (app, x, y, rotationClass) {
+    constructor (index, app, x1, y1, x2, y2) {
+        this.index = index;
+        this.app = app;
+        this.x1 = x1;
+        this.y1 = y1;
+        this.x2 = x2;
+        this.y2 = y2;
         this.element = document.createElement("div");
+        const rotationClass = x1 < x2 ? "east" : "south";
         this.element.classList.add("domino", rotationClass);
-        const canvasX = x * app.tileSize + app.tilePadding;
-        const canvasY = y * app.tileSize + app.tilePadding;
+        const canvasX = x1 * app.tileSize + app.tilePadding;
+        const canvasY = y1 * app.tileSize + app.tilePadding;
         this.element.style.top = `${canvasY}px`;
         this.element.style.left = `${canvasX}px`;
 
-        app.container.appendChild(this.element);
+        this.app.container.appendChild(this.element);
+
+        this.element.addEventListener("click", () => {
+            this.app.removeDomino(this.index);
+            this.remove();
+        });
     }
 
     remove() {
@@ -172,14 +186,16 @@ class Dominoes {
     }
 
     reset() {
-        if (this.dominoes) {
-            for (const domino of this.dominoes) {
+        if (!this.dominoesById) {
+            /** @type {Map<Number, Domino>} */
+            this.dominoesById = new Map();
+        } else if (this.dominoesById) {
+            for (const domino of this.dominoesById.values()) {
                 domino.remove();
             }
+            this.dominoesById.clear();
         }
 
-        /** @type {Domino[]} */
-        this.dominoes = [];
         /** @type {Domino[][]} */
         this.board = Array.from(Array(this.boardWidth), () => Array(this.boardHeight));
     }
@@ -199,14 +215,27 @@ class Dominoes {
             }
         }
 
+        let nextDominoIndex = 1;
         for (let i = 0; i < bestPlacement.length; i += 2) {
             const [x1, y1] = bestPlacement[i];
             const [x2, y2] = bestPlacement[i+1];
-            const domino = new Domino(this, x1, y1, x1 < x2 ? "east" : "south");
-            this.board[x1][y1] = domino;
-            this.board[x2][y2] = domino;
-            this.dominoes.push(domino);
+            this.addDomino(nextDominoIndex++, x1, y1, x2, y2);
         }
+    }
+
+    addDomino(index, x1, y1, x2, y2) {
+        const domino = new Domino(index, this, x1, y1, x2, y2);
+        this.board[x1][y1] = domino;
+        this.board[x2][y2] = domino;
+        this.dominoesById.set(index, domino);
+    }
+
+    removeDomino(index) {
+        const domino = this.dominoesById.get(index);
+        this.board[domino.x1][domino.y1] = undefined;
+        this.board[domino.x2][domino.y2] = undefined;
+        this.dominoesById.delete(index);
+
     }
 
     drawGrid() {

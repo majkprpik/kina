@@ -165,7 +165,7 @@ class Dominoes {
 
         this.runRandomPlacement();
 
-        document.addEventListener("keypress", e => e.key === "r" && this.placeRandomly());
+        document.addEventListener("keypress", e => e.key === "r" && this.runRandomPlacement());
     }
 
     reset() {
@@ -192,7 +192,6 @@ class Dominoes {
                 bestPlacement = placement;
             }
             if (placement.length === totalTiles) {
-                console.info("Found it!");
                 break;
             }
         }
@@ -203,6 +202,7 @@ class Dominoes {
             const domino = new Domino(this, x1, y1, x1 < x2 ? "east" : "south");
             this.board[x1][y1] = domino;
             this.board[x2][y2] = domino;
+            this.dominoes.push(domino);
         }
     }
 

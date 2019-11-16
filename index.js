@@ -22,6 +22,8 @@ function shuffle(array) {
     }
 }
 
+const NUMBER_OF_ATTEMPTS = 1000;
+
 class Domino {
 
     /**
@@ -338,7 +340,7 @@ class Dominoes {
 
         const totalTiles = this.boardWidth * this.boardHeight;
         let bestPlacement = [];
-        for (let i = 0; i < 10000; i++) {
+        for (let i = 0; i < NUMBER_OF_ATTEMPTS; i++) {
             const placement = this.randomPlacement.run(this.boardWidth, this.boardHeight);
             if (placement.length > bestPlacement.length) {
                 bestPlacement = placement;

@@ -22,7 +22,7 @@ function shuffle(array) {
     }
 }
 
-const NUMBER_OF_ATTEMPTS = 1000;
+const NUMBER_OF_ATTEMPTS = 1;
 
 class Domino {
 
@@ -41,8 +41,13 @@ class Domino {
         this.isGhost = isGhost;
         this.element = document.createElement("div");
         this.setPosition(x1, y1, x2, y2);
-
+        // var x = document.createElement("span")
+        // x.style.fontSize = '30px';
+        // x.innerHTML = '&#127030';
+        // this.element.appendChild(x);
         const rotationClass = this.isHorizontal ? "east" : "south";
+        this.element.style.backgroundColor = "rgb(" + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + ")";
+        this.element.style.border = "2px solidrgb(" + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + "," + Math.floor(Math.random() * 255) + ")";
         this.element.classList.add("domino", rotationClass);
         if (this.isGhost) {
             this.element.classList.add("ghost", rotationClass);

@@ -1,7 +1,7 @@
 
 :root {
     --tile-size: 40px;
-    --board-width: 18;
+    --board-width: 10;
     --board-height: 10;
     --some-calculation: calc(var(--board-width) * 800px);
     --tile-padding: 5px;
@@ -67,11 +67,12 @@ button:active {
 .domino {
     width: var(--domino-width);
     height: var(--domino-height);
-    background-color: #ff0c57;
-    border: 2px solid #ff4b5c;
+    /* background-color: #0cff5d; */
+    /* border: 2px solid #ff4b5c; */
     border-radius: 4px;
     position: absolute;
     transform-origin: var(--rotation-origin) var(--rotation-origin);
+    display: flex;
 }
 
 .domino:hover {
@@ -123,4 +124,20 @@ button:active {
 #controls {
     margin-left: 10px;
     width: 150px;
+}
+
+
+/* --------------------------------------------------------------------------------------------- */
+
+.container2 {
+    width: 200px;
+    height: 200px;
+}
+
+.box2 {
+    width: 20px;
+    height: 20px;
+    font-weight: bold;
+    display: inline-block;
+    vertical-align: top;
 }
